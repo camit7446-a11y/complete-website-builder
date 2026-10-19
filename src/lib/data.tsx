@@ -2,7 +2,7 @@ import { createContext, useContext, useMemo, useState, type ReactNode } from "re
 
 export type Outlet = { id: string; name: string; city: string; rating: number; reviews: number; pending: number };
 export type Review = {
-  id: string; outletId: string; author: string; rating: number; text: string; date: string; reply?: string;
+  id: string; outletId: string; author: string; rating: number; text: string; date: string; reply?: string | undefined;
 };
 export type Rule = { id: string; name: string; stars: number[]; template: string; enabled: boolean };
 export type AuditEntry = { id: string; reviewId: string; author: string; outlet: string; reply: string; by: string; at: string };
@@ -28,15 +28,15 @@ const texts: Record<number, string[]> = {
 };
 
 export const initialReviews: Review[] = Array.from({ length: 36 }, (_, i) => {
-  const rating = [5, 4, 5, 2, 4, 1, 5, 3, 4, 5, 2, 4][i % 12];
-  const pool = texts[rating];
-  const o = outlets[1 + (i % 7)];
+  const rating = [5, 4, 5, 2, 4, 1, 5, 3, 4, 5, 2, 4][i % 12]!;
+  const pool = texts[rating]!;
+  const o = outlets[1 + (i % 7)]!;
   return {
     id: `r${i + 1}`,
     outletId: o.id,
-    author: names[i % names.length],
+    author: names[i % names.length]!,
     rating,
-    text: pool[i % pool.length],
+    text: pool[i % pool.length]!,
     date: new Date(Date.UTC(2026, 9, 18 - (i % 14), 10)).toISOString(),
     reply: i % 3 === 0 ? "Thank you for your feedback! We hope to see you again soon." : undefined,
   };
@@ -58,8 +58,8 @@ export const team = [
 ];
 
 export function templateFor(rules: Rule[], r: Review) {
-  const rule = rules.find((x) => x.stars.includes(r.rating)) ?? rules[0];
-  return rule.template.replace("{name}", r.author.split(" ")[0]);
+  const rule = rules.find((x) => x.stars.includes(r.rating)) ?? rules[0]!;
+  return rule.template.replace("{name}", r.author.split(" ")[0] ?? r.author);
 }
 
 type Ctx = {
