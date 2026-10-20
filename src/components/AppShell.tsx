@@ -2,7 +2,9 @@ import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { PieChart, Star, Wand2, Store, Users, History, SlidersHorizontal, Globe, Bot, RefreshCw, Power, Coffee } from "lucide-react";
 import { toast } from "sonner";
-import { outlets, useData } from "@/lib/data";
+import { useQueryClient } from "@tanstack/react-query";
+import { useData } from "@/lib/data";
+import { supabase } from "@/integrations/supabase/client";
 
 const nav = [
   { to: "/", label: "Dashboard Center", icon: PieChart },
@@ -15,7 +17,7 @@ const nav = [
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { filter, setFilter } = useData();
+  const { filter, setFilter, outlets } = useData();
   return (
     <div className="flex min-h-screen">
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r bg-sidebar p-4 lg:flex">
@@ -54,6 +56,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 }
 
 export function PageHeader({ title, subtitle }: { title: string; subtitle: string }) {
+  const qc = useQueryClient();
   return (
     <header className="panel mb-6 flex flex-wrap items-center gap-4 p-5">
       <div className="mr-auto">
@@ -68,14 +71,14 @@ export function PageHeader({ title, subtitle }: { title: string; subtitle: strin
       <Link to="/auto-rules" className="flex items-center gap-2 rounded-xl bg-gradient-violet px-4 py-2.5 text-sm font-bold text-violet-foreground">
         <Bot className="size-4" /> AUTO REPLY VIEW
       </Link>
-      <button onClick={() => toast.success("Reviews synced from Google Business Profile")}
+      <button onClick={async () => { await qc.invalidateQueries(); toast.success("Data refreshed from database"); }}
         className="flex items-center gap-2 rounded-xl bg-gradient-primary px-4 py-2.5 text-sm font-bold text-primary-foreground shadow-glow">
         <RefreshCw className="size-4" /> Sync Reviews
       </button>
       <div className="flex items-center gap-2 border-l pl-4">
         <div className="grid size-9 place-items-center rounded-lg bg-primary font-bold text-primary-foreground">VI</div>
         <span className="text-sm font-semibold">Vivek Sir Admin</span>
-        <Power className="size-4 text-muted-foreground" />
+        <button aria-label="Sign out" onClick={() => supabase.auth.signOut()}><Power className="size-4 text-muted-foreground hover:text-destructive" /></button>
       </div>
     </header>
   );

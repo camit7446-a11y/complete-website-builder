@@ -1,95 +1,90 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export type Outlet = { id: string; name: string; city: string; rating: number; reviews: number; pending: number };
-export type Review = {
-  id: string; outletId: string; author: string; rating: number; text: string; date: string; reply?: string | undefined;
-};
+export type Review = { id: string; outletId: string; author: string; rating: number; text: string; date: string; reply?: string | undefined };
 export type Rule = { id: string; name: string; stars: number[]; template: string; enabled: boolean };
-export type AuditEntry = { id: string; reviewId: string; author: string; outlet: string; reply: string; by: string; at: string };
+export type AuditEntry = { id: string; author: string; outlet: string; reply: string; by: string; at: string };
+export type Member = { id: string; name: string; email: string; role: string; outlets: string };
 
-export const outlets: Outlet[] = [
-  { id: "o1", name: "Cafe Athyeka 2.0", city: "Noida", rating: 0, reviews: 0, pending: 0 },
-  { id: "o2", name: "Roastery Coffee House", city: "Hyderabad", rating: 4.4, reviews: 8038, pending: 213 },
-  { id: "o3", name: "Roastery Coffee House", city: "Kolkata", rating: 4.5, reviews: 1044, pending: 1 },
-  { id: "o4", name: "Roastery Coffee House", city: "Agra", rating: 4.5, reviews: 68, pending: 4 },
-  { id: "o5", name: "Roastery Coffee House", city: "Jaipur", rating: 4.4, reviews: 1025, pending: 2 },
-  { id: "o6", name: "Roastery Coffee House", city: "Bengaluru", rating: 4.6, reviews: 3120, pending: 27 },
-  { id: "o7", name: "Roastery Coffee House", city: "Pune", rating: 4.5, reviews: 2410, pending: 11 },
-  { id: "o8", name: "Roastery Coffee House", city: "Chennai", rating: 4.3, reviews: 1256, pending: 4 },
-];
+async function must<T>(p: PromiseLike<{ data: T | null; error: { message: string } | null }>): Promise<T> {
+  const { data, error } = await p;
+  if (error) throw new Error(error.message);
+  return data as T;
+}
 
-const names = ["Ananya S.", "Rohit K.", "Priya M.", "Arjun D.", "Sneha P.", "Karan V.", "Meera J.", "Vikram R.", "Isha T.", "Aditya N."];
-const texts: Record<number, string[]> = {
-  5: ["Best cold brew in town, cozy vibe!", "Loved the pour-over and the staff were super friendly.", "Amazing ambience, perfect for working."],
-  4: ["Great coffee, slightly slow service.", "Nice place, desserts could be better.", "Good espresso, a bit crowded on weekends."],
-  3: ["Average experience, coffee was okay.", "Decent but overpriced."],
-  2: ["Waited 30 minutes for a latte.", "Table was not clean when we arrived."],
-  1: ["Very rude staff, will not return.", "Cold food and wrong order."],
-};
+function useTables() {
+  const outletsQ = useQuery({ queryKey: ["outlets"], queryFn: () => must(supabase.from("outlets").select("*").order("created_at")) });
+  const reviewsQ = useQuery({ queryKey: ["reviews"], queryFn: () => must(supabase.from("reviews").select("*").order("created_at", { ascending: false })) });
+  const rulesQ = useQuery({ queryKey: ["rules"], queryFn: () => must(supabase.from("reply_rules").select("*").order("created_at")) });
+  const teamQ = useQuery({ queryKey: ["team"], queryFn: () => must(supabase.from("team_members").select("*").order("created_at")) });
+  const auditQ = useQuery({ queryKey: ["audit"], queryFn: () => must(supabase.from("audit_log").select("*").order("created_at", { ascending: false }).limit(200)) });
 
-export const initialReviews: Review[] = Array.from({ length: 36 }, (_, i) => {
-  const rating = [5, 4, 5, 2, 4, 1, 5, 3, 4, 5, 2, 4][i % 12]!;
-  const pool = texts[rating]!;
-  const o = outlets[1 + (i % 7)]!;
-  return {
-    id: `r${i + 1}`,
-    outletId: o.id,
-    author: names[i % names.length]!,
-    rating,
-    text: pool[i % pool.length]!,
-    date: new Date(Date.UTC(2026, 9, 18 - (i % 14), 10)).toISOString(),
-    reply: i % 3 === 0 ? "Thank you for your feedback! We hope to see you again soon." : undefined,
-  };
-});
-
-export const initialRules: Rule[] = [
-  { id: "a1", name: "Delighted guests", stars: [5], template: "Hi {name}, thank you so much for the 5-star love! See you again at Roastery ☕", enabled: true },
-  { id: "a2", name: "Happy guests", stars: [4], template: "Hi {name}, thanks for visiting! We'd love to make your next visit a perfect 5.", enabled: true },
-  { id: "a3", name: "Mixed feedback", stars: [3], template: "Hi {name}, thanks for the honest feedback. We're working on improving.", enabled: false },
-  { id: "a4", name: "Service recovery", stars: [1, 2], template: "Hi {name}, we're truly sorry. Please write to care@roastery.in so we can make it right.", enabled: false },
-];
-
-export const team = [
-  { name: "Vivek Sir", email: "vivek@roastery.in", role: "Admin", outlets: "All outlets" },
-  { name: "Neha Gupta", email: "neha@roastery.in", role: "Manager", outlets: "Hyderabad, Bengaluru" },
-  { name: "Rahul Mehta", email: "rahul@roastery.in", role: "Responder", outlets: "Kolkata" },
-  { name: "Simran Kaur", email: "simran@roastery.in", role: "Responder", outlets: "Jaipur, Agra" },
-  { name: "Aman Joshi", email: "aman@roastery.in", role: "Viewer", outlets: "Pune, Chennai" },
-];
+  const reviews: Review[] = (reviewsQ.data ?? []).map((r) => ({
+    id: r.id, outletId: r.outlet_id, author: r.author, rating: r.rating, text: r.text, date: r.created_at, reply: r.reply ?? undefined,
+  }));
+  const outlets: Outlet[] = (outletsQ.data ?? []).map((o) => {
+    const rs = reviews.filter((r) => r.outletId === o.id);
+    return {
+      id: o.id, name: o.name, city: o.city, reviews: rs.length,
+      pending: rs.filter((r) => !r.reply).length,
+      rating: rs.length ? rs.reduce((s, r) => s + r.rating, 0) / rs.length : 0,
+    };
+  });
+  const rules: Rule[] = (rulesQ.data ?? []).map((r) => ({ id: r.id, name: r.name, stars: r.stars, template: r.template, enabled: r.enabled }));
+  const team: Member[] = teamQ.data ?? [];
+  const audit: AuditEntry[] = (auditQ.data ?? []).map((a) => ({ id: a.id, author: a.author, outlet: a.outlet, reply: a.reply, by: a.by_email ?? "", at: a.created_at }));
+  const loading = outletsQ.isLoading || reviewsQ.isLoading;
+  return { outlets, reviews, rules, team, audit, loading };
+}
 
 export function templateFor(rules: Rule[], r: Review) {
-  const rule = rules.find((x) => x.stars.includes(r.rating)) ?? rules[0]!;
+  const rule = rules.find((x) => x.stars.includes(r.rating)) ?? rules[0];
+  if (!rule) return "";
   return rule.template.replace("{name}", r.author.split(" ")[0] ?? r.author);
 }
 
-type Ctx = {
-  reviews: Review[]; rules: Rule[]; audit: AuditEntry[];
+type Ctx = ReturnType<typeof useTables> & {
   filter: string; setFilter: (v: string) => void;
   selected: Review | null; select: (r: Review | null) => void;
-  reply: (id: string, text: string) => void;
-  setRules: (r: Rule[]) => void;
+  reply: (id: string, text: string) => Promise<void>;
+  run: (key: string, op: PromiseLike<{ error: { message: string } | null }>, msg?: string) => Promise<boolean>;
+  outletLabel: (id: string) => string;
 };
 const C = createContext<Ctx | null>(null);
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const [reviews, setReviews] = useState(initialReviews);
-  const [rules, setRules] = useState(initialRules);
-  const [audit, setAudit] = useState<AuditEntry[]>([]);
+  const t = useTables();
+  const qc = useQueryClient();
   const [filter, setFilter] = useState("all");
   const [selected, select] = useState<Review | null>(null);
-  const value = useMemo<Ctx>(() => ({
-    reviews, rules, audit, filter, setFilter, selected, select, setRules,
-    reply: (id, text) => {
-      const r = reviews.find((x) => x.id === id);
-      setReviews((p) => p.map((x) => (x.id === id ? { ...x, reply: text } : x)));
-      if (r) {
-        const o = outlets.find((x) => x.id === r.outletId)!;
-        setAudit((a) => [{ id: crypto.randomUUID(), reviewId: id, author: r.author, outlet: `${o.name}, ${o.city}`, reply: text, by: "Vivek Sir", at: new Date().toISOString() }, ...a]);
-      }
-      select(null);
-    },
-  }), [reviews, rules, audit, filter, selected]);
-  return <C.Provider value={value}>{children}</C.Provider>;
+
+  const outletLabel = (id: string) => {
+    const o = t.outlets.find((x) => x.id === id);
+    return o ? `${o.name} · ${o.city}` : "";
+  };
+
+  const run: Ctx["run"] = async (key, op, msg) => {
+    const { error } = await op;
+    if (error) { toast.error(error.message); return false; }
+    await qc.invalidateQueries({ queryKey: [key] });
+    if (key === "outlets") await qc.invalidateQueries({ queryKey: ["reviews"] });
+    if (msg) toast.success(msg);
+    return true;
+  };
+
+  const reply: Ctx["reply"] = async (id, text) => {
+    const r = t.reviews.find((x) => x.id === id);
+    const ok = await run("reviews", supabase.from("reviews").update({ reply: text, replied_at: new Date().toISOString() }).eq("id", id));
+    if (!ok || !r) return;
+    const { data } = await supabase.auth.getUser();
+    await run("audit", supabase.from("audit_log").insert({ review_id: id, author: r.author, outlet: outletLabel(r.outletId), reply: text, by_email: data.user?.email ?? null }), "Response published");
+    select(null);
+  };
+
+  return <C.Provider value={{ ...t, filter, setFilter, selected, select, reply, run, outletLabel }}>{children}</C.Provider>;
 }
 
 export function useData() {
@@ -97,8 +92,3 @@ export function useData() {
   if (!c) throw new Error("useData outside provider");
   return c;
 }
-
-export const outletLabel = (id: string) => {
-  const o = outlets.find((x) => x.id === id);
-  return o ? `${o.name} · ${o.city}` : "";
-};
