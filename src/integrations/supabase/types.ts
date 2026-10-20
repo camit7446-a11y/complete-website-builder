@@ -14,7 +14,160 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      audit_log: {
+        Row: {
+          author: string
+          by_email: string | null
+          created_at: string
+          id: string
+          outlet: string
+          reply: string
+          review_id: string | null
+        }
+        Insert: {
+          author: string
+          by_email?: string | null
+          created_at?: string
+          id?: string
+          outlet: string
+          reply: string
+          review_id?: string | null
+        }
+        Update: {
+          author?: string
+          by_email?: string | null
+          created_at?: string
+          id?: string
+          outlet?: string
+          reply?: string
+          review_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      outlets: {
+        Row: {
+          city: string
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          city: string
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          city?: string
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      reply_rules: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          name: string
+          stars: number[]
+          template: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          name: string
+          stars?: number[]
+          template?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          name?: string
+          stars?: number[]
+          template?: string
+        }
+        Relationships: []
+      }
+      reviews: {
+        Row: {
+          author: string
+          created_at: string
+          id: string
+          outlet_id: string
+          rating: number
+          replied_at: string | null
+          reply: string | null
+          text: string
+        }
+        Insert: {
+          author: string
+          created_at?: string
+          id?: string
+          outlet_id: string
+          rating: number
+          replied_at?: string | null
+          reply?: string | null
+          text?: string
+        }
+        Update: {
+          author?: string
+          created_at?: string
+          id?: string
+          outlet_id?: string
+          rating?: number
+          replied_at?: string | null
+          reply?: string | null
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_outlet_id_fkey"
+            columns: ["outlet_id"]
+            isOneToOne: false
+            referencedRelation: "outlets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_members: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          outlets: string
+          role: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          outlets?: string
+          role?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          outlets?: string
+          role?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
