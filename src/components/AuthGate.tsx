@@ -30,6 +30,7 @@ function Login() {
     setBusy(false);
     if (error) return toast.error(error.message);
     if (mode === "up") toast.success("Check your email to confirm your account");
+    return undefined;
   };
   const field = "w-full rounded-xl border bg-background/50 px-3 py-2.5 text-sm outline-none focus:border-primary";
   return (
