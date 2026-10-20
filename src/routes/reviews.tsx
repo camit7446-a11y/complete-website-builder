@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { PageHeader, Stars } from "@/components/AppShell";
 import { ReplyConsole } from "@/components/ReplyConsole";
-import { outletLabel, useData } from "@/lib/data";
+import { useData } from "@/lib/data";
 
 export const Route = createFileRoute("/reviews")({
   head: () => ({
@@ -19,7 +19,7 @@ export const Route = createFileRoute("/reviews")({
 const tabs = ["All", "Pending", "Replied", "Negative"] as const;
 
 function Reviews() {
-  const { reviews, filter, select, selected } = useData();
+  const { reviews, filter, select, selected, outletLabel } = useData();
   const [tab, setTab] = useState<(typeof tabs)[number]>("All");
   const [stars, setStars] = useState(0);
   const list = reviews.filter((r) =>

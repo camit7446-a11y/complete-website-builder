@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
 import { Send, Zap } from "lucide-react";
-import { toast } from "sonner";
-import { outletLabel, templateFor, useData } from "@/lib/data";
+import { templateFor, useData } from "@/lib/data";
 import { Stars } from "./AppShell";
 
 export function ReplyConsole() {
-  const { selected, rules, reply } = useData();
+  const { selected, rules, reply, outletLabel } = useData();
   const [text, setText] = useState("");
   useEffect(() => { setText(selected ? templateFor(rules, selected) : ""); }, [selected, rules]);
   return (
@@ -28,7 +27,7 @@ export function ReplyConsole() {
         placeholder="Database template will automatically load here for editing..."
         className="w-full resize-none rounded-xl border bg-background/50 p-3 text-sm outline-none focus:border-primary" />
       <button disabled={!selected || !text.trim()}
-        onClick={() => { reply(selected!.id, text); toast.success("Response published to Google"); }}
+        onClick={() => reply(selected!.id, text)}
         className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-primary py-3 font-bold text-primary-foreground shadow-glow disabled:opacity-50">
         <Send className="size-4" /> Publish Live Response
       </button>

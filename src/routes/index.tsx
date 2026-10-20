@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Layers, TrendingUp } from "lucide-react";
 import { PageHeader } from "@/components/AppShell";
 import { ReplyConsole } from "@/components/ReplyConsole";
-import { outlets, useData } from "@/lib/data";
+import { useData } from "@/lib/data";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -17,13 +17,13 @@ export const Route = createFileRoute("/")({
 });
 
 function Dashboard() {
-  const { filter, setFilter, reviews, select } = useData();
+  const { filter, setFilter, reviews, select, outlets } = useData();
   const nav = useNavigate();
   const list = filter === "all" ? outlets : outlets.filter((o) => o.id === filter);
   const total = list.reduce((s, o) => s + o.reviews, 0);
   const pending = list.reduce((s, o) => s + o.pending, 0);
   const rating = total ? list.reduce((s, o) => s + o.rating * o.reviews, 0) / total : 0;
-  const negative = Math.round(total * 0.06);
+  const negative = reviews.filter((r) => r.rating <= 2 && (filter === "all" || r.outletId === filter)).length;
   const resp = total ? ((total - pending) / total) * 100 : 0;
   const recent = reviews.filter((r) => !r.reply && (filter === "all" || r.outletId === filter)).slice(0, 4);
 
